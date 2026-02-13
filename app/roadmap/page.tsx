@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { roadmapData } from '@/data/roadmap';
+import Link from 'next/link';
 import {
     BookOpen, Clock, CheckCircle2, X, Target, TrendingUp, Zap, Award, ExternalLink, ChevronRight,
     Shield, Lock, Globe, Server, Database, Code, Cpu
@@ -167,8 +168,8 @@ export default function RoadmapPage() {
                     <button
                         onClick={() => setSelectedDomain('all')}
                         className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${selectedDomain === 'all'
-                                ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)] scale-105'
-                                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700'
+                            ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)] scale-105'
+                            : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700'
                             }`}
                     >
                         All Tracks
@@ -179,8 +180,8 @@ export default function RoadmapPage() {
                             key={domain}
                             onClick={() => setSelectedDomain(domain as Domain)}
                             className={`px-5 py-2.5 rounded-full text-sm font-bold capitalize transition-all duration-300 ${selectedDomain === domain
-                                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg scale-105 border-transparent'
-                                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700'
+                                ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg scale-105 border-transparent'
+                                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700'
                                 }`}
                         >
                             {domain.replace('-', ' ')}
@@ -188,10 +189,10 @@ export default function RoadmapPage() {
                     ))}
                 </motion.div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative">
+                <div className="flex justify-center relative">
 
                     {/* Main Roadmap Area (SVG + Nodes) */}
-                    <div className="lg:col-span-2 relative min-h-[800px] flex justify-center">
+                    <div className="relative min-h-[800px] flex justify-center w-full max-w-5xl">
 
                         {/* SVG Container */}
                         <svg
@@ -261,14 +262,14 @@ export default function RoadmapPage() {
                                         animate={{ opacity: 1, scale: 1 }}
                                         transition={{ delay: index * 0.2 + 0.5, type: "spring", bounce: 0.4 }}
                                     >
-                                        {/* The Circular Node */}
-                                        <div className="relative group cursor-pointer" onClick={() => setSelectedNode(node.id)}>
+                                        {/* The Circular Node - NOW A LINK */}
+                                        <Link href={`/roadmap/${node.id}`} className="relative group cursor-pointer block">
 
                                             {/* Outer Glow Ring */}
-                                            <div className={`absolute inset-0 rounded-full opacity-50 group-hover:opacity-100 transition-opacity duration-500 blur-md ${isSelected ? 'bg-white' : levelInfo.gradient.replace('from-', 'bg-')}`} />
+                                            <div className={`absolute inset-0 rounded-full opacity-50 group-hover:opacity-100 transition-opacity duration-500 blur-md ${levelInfo.gradient.replace('from-', 'bg-')}`} />
 
                                             {/* Main Circle */}
-                                            <div className={`relative w-20 h-20 md:w-24 md:h-24 rounded-full bg-slate-900 border-4 ${isSelected ? 'border-white scale-110' : `border-transparent group-hover:border-white/20`} shadow-2xl flex items-center justify-center transition-all duration-300 z-10 overflow-hidden`}>
+                                            <div className={`relative w-20 h-20 md:w-24 md:h-24 rounded-full bg-slate-900 border-4 border-transparent group-hover:border-white/20 shadow-2xl flex items-center justify-center transition-all duration-300 z-10 overflow-hidden`}>
 
                                                 {/* Gradient Background inside circle */}
                                                 <div className={`absolute inset-0 opacity-20 bg-gradient-to-br ${levelInfo.gradient}`} />
@@ -279,17 +280,17 @@ export default function RoadmapPage() {
 
                                             {/* Label - Positioned relative to node based on Side */}
                                             <div className={`absolute top-1/2 -translate-y-1/2 w-48 md:w-64 ${isMobile
-                                                    ? 'left-full ml-6 text-left'
-                                                    : isLeft
-                                                        ? 'right-full mr-8 text-right'
-                                                        : 'left-full ml-8 text-left'
+                                                ? 'left-full ml-6 text-left'
+                                                : isLeft
+                                                    ? 'right-full mr-8 text-right'
+                                                    : 'left-full ml-8 text-left'
                                                 } pointer-events-none`}>
                                                 <motion.div
                                                     initial={{ opacity: 0, x: isMobile ? 20 : (isLeft ? -20 : 20) }}
                                                     animate={{ opacity: 1, x: 0 }}
                                                     transition={{ delay: index * 0.2 + 0.8 }}
                                                 >
-                                                    <h3 className={`text-lg md:text-xl font-bold mb-1 leading-tight ${isSelected ? 'text-white' : 'text-slate-200'}`}>
+                                                    <h3 className={`text-lg md:text-xl font-bold mb-1 leading-tight text-slate-200 group-hover:text-white transition-colors`}>
                                                         {node.title}
                                                     </h3>
                                                     <span className={`text-xs font-bold uppercase tracking-wider py-1 px-2 rounded-lg bg-slate-800/80 backdrop-blur-sm border border-slate-700 ${levelInfo.color}`}>
@@ -297,7 +298,7 @@ export default function RoadmapPage() {
                                                     </span>
                                                 </motion.div>
                                             </div>
-                                        </div>
+                                        </Link>
                                     </motion.div>
                                 );
                             })}
@@ -307,104 +308,7 @@ export default function RoadmapPage() {
                         <div style={{ height: sortedNodes.length * nodeHeight + 200 }} />
                     </div>
 
-                    {/* Right Panel - Details (Sticky) */}
-                    <div className="lg:col-span-1">
-                        <div className="sticky top-24">
-                            <AnimatePresence mode="wait">
-                                {selectedNodeData ? (
-                                    <motion.div
-                                        key={selectedNodeData.id}
-                                        initial={{ opacity: 0, x: 50 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: 50, transition: { duration: 0.2 } }}
-                                        className="glass-card p-8 border-t-4 border-t-purple-500 shadow-[0_20px_50px_rgba(0,0,0,0.5)] bg-slate-900/90 backdrop-blur-xl"
-                                    >
-                                        <div className="flex items-start justify-between mb-6">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`p-3 rounded-xl bg-gradient-to-br ${levelConfig[selectedNodeData.level].gradient}`}>
-                                                    {(() => {
-                                                        const Icon = levelConfig[selectedNodeData.level].icon;
-                                                        return <Icon className="w-6 h-6 text-white" />;
-                                                    })()}
-                                                </div>
-                                                <div>
-                                                    <h2 className="text-2xl font-black text-white leading-tight">{selectedNodeData.title}</h2>
-                                                    <p className="text-purple-400 font-medium text-sm">Phase: {selectedNodeData.level}</p>
-                                                </div>
-                                            </div>
-                                            <button onClick={() => setSelectedNode(null)} className="text-slate-500 hover:text-white transition-colors">
-                                                <X className="w-6 h-6" />
-                                            </button>
-                                        </div>
 
-                                        <p className="text-slate-300 leading-relaxed mb-6 text-lg">
-                                            {selectedNodeData.description}
-                                        </p>
-
-                                        <div className="space-y-6">
-                                            {/* Why it matters */}
-                                            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
-                                                <h4 className="flex items-center gap-2 font-bold text-white mb-2">
-                                                    <Target className="w-4 h-4 text-red-400" />
-                                                    Mission Objective
-                                                </h4>
-                                                <p className="text-sm text-slate-400">{selectedNodeData.whyItMatters}</p>
-                                            </div>
-
-                                            {/* Checklist */}
-                                            <div>
-                                                <h4 className="font-bold text-slate-200 mb-3 flex items-center gap-2">
-                                                    <CheckCircle2 className="w-5 h-5 text-green-400" />
-                                                    Key Objectives
-                                                </h4>
-                                                <ul className="space-y-2">
-                                                    {selectedNodeData.checklistItems.slice(0, 4).map((item, i) => (
-                                                        <motion.li
-                                                            key={i}
-                                                            initial={{ opacity: 0, x: -10 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            transition={{ delay: 0.1 * i }}
-                                                            className="flex items-start gap-3 text-sm text-slate-400"
-                                                        >
-                                                            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-2 shrink-0" />
-                                                            {item}
-                                                        </motion.li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-
-                                            {/* Skills */}
-                                            <div className="flex flex-wrap gap-2">
-                                                {selectedNodeData.skills.map(skill => (
-                                                    <span key={skill} className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold">
-                                                        {skill}
-                                                    </span>
-                                                ))}
-                                            </div>
-
-                                            <button className="w-full btn-cyber mt-4 flex items-center justify-center gap-2 group">
-                                                Start Module <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                                            </button>
-                                        </div>
-                                    </motion.div>
-                                ) : (
-                                    <motion.div
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        className="glass-card p-12 text-center border border-slate-800"
-                                    >
-                                        <div className="w-20 h-20 mx-auto bg-slate-800/50 rounded-full flex items-center justify-center mb-6 animate-pulse">
-                                            <Target className="w-10 h-10 text-slate-600" />
-                                        </div>
-                                        <h3 className="text-2xl font-bold text-white mb-2">Select a Node</h3>
-                                        <p className="text-slate-400">
-                                            Click on any circular node in the roadmap to view detailed module information, objectives, and resources.
-                                        </p>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-                    </div>
                 </div>
             </section>
         </div>
