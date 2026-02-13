@@ -1,426 +1,409 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { roadmapData } from '@/data/roadmap';
 import {
-    BookOpen, Clock, CheckCircle2, X, Target, TrendingUp, Zap, Award, ExternalLink, ChevronRight
+    BookOpen, Clock, CheckCircle2, X, Target, TrendingUp, Zap, Award, ExternalLink, ChevronRight,
+    Shield, Lock, Globe, Server, Database, Code, Cpu
 } from 'lucide-react';
 import type { SkillLevel, Domain } from '@/lib/types';
 
-const levelConfig: Record<SkillLevel, { color: string; gradient: string; icon: any; position: number }> = {
+// Configuration for levels (Colors & Order)
+const levelOrder: SkillLevel[] = ['beginner', 'intermediate', 'advanced', 'professional'];
+
+const levelConfig: Record<SkillLevel, { color: string; gradient: string; glow: string; icon: any }> = {
     beginner: {
-        color: 'text-green-400',
-        gradient: 'from-green-500 to-emerald-500',
+        color: 'text-emerald-400',
+        gradient: 'from-emerald-500 to-green-500',
+        glow: 'shadow-[0_0_30px_rgba(16,185,129,0.4)]',
         icon: Target,
-        position: 0,
     },
     intermediate: {
         color: 'text-blue-400',
         gradient: 'from-blue-500 to-cyan-500',
+        glow: 'shadow-[0_0_30px_rgba(59,130,246,0.4)]',
         icon: TrendingUp,
-        position: 1,
     },
     advanced: {
         color: 'text-purple-400',
         gradient: 'from-purple-500 to-pink-500',
+        glow: 'shadow-[0_0_30px_rgba(168,85,247,0.4)]',
         icon: Zap,
-        position: 2,
     },
     professional: {
-        color: 'text-orange-400',
-        gradient: 'from-orange-500 to-red-500',
+        color: 'text-amber-400',
+        gradient: 'from-amber-500 to-orange-500',
+        glow: 'shadow-[0_0_30px_rgba(245,158,11,0.4)]',
         icon: Award,
-        position: 3,
     },
 };
 
 const domainColors: Record<Domain, string> = {
+    entry: 'badge-green',
     defense: 'badge-blue',
     offense: 'badge-pink',
+    appsec: 'badge-purple',
     cloud: 'badge-cyan',
-    devsecops: 'badge-green',
+    iam: 'badge-orange',
     grc: 'badge-purple',
     ot: 'badge-orange',
+    specialized: 'badge-pink',
+    architect: 'badge-cyan',
     leadership: 'badge-orange',
+    executive: 'badge-pink',
 };
 
 export default function RoadmapPage() {
     const [selectedDomain, setSelectedDomain] = useState<Domain | 'all'>('all');
     const [selectedNode, setSelectedNode] = useState<string | null>(null);
     const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+    const [isMobile, setIsMobile] = useState(false);
 
-    // Filter nodes based on domain
-    const filteredNodes = useMemo(() => {
-        return roadmapData.filter((node) => {
-            const matchesDomain = selectedDomain === 'all' || node.domain.includes(selectedDomain);
-            return matchesDomain;
+    // Handle resize for responsive layout calculations
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // Filter and SORT nodes by level to create a logical path
+    const sortedNodes = useMemo(() => {
+        const filtered = roadmapData.filter((node) => {
+            if (selectedDomain === 'all') return true;
+            return node.domain.includes(selectedDomain);
+        });
+
+        return filtered.sort((a, b) => {
+            const indexA = levelOrder.indexOf(a.level);
+            const indexB = levelOrder.indexOf(b.level);
+            return indexA - indexB; // Lower levels first
         });
     }, [selectedDomain]);
-
-    // Organize nodes by level
-    const nodesByLevel = useMemo(() => {
-        const levels: Record<SkillLevel, typeof filteredNodes> = {
-            beginner: [],
-            intermediate: [],
-            advanced: [],
-            professional: [],
-        };
-
-        filteredNodes.forEach(node => {
-            levels[node.level].push(node);
-        });
-
-        return levels;
-    }, [filteredNodes]);
 
     const selectedNodeData = selectedNode
         ? roadmapData.find((n) => n.id === selectedNode)
         : null;
 
-    // Generate connection paths between nodes
-    const renderConnections = () => {
-        const paths: JSX.Element[] = [];
+    // --- SVG Path Calculation ---
+    const nodeHeight = 180; // Vertical spacing between nodes
+    const containerWidth = isMobile ? 300 : 800;
+    const centerX = containerWidth / 2;
+    const curveWidth = isMobile ? 0 : 250; // How wide the S-curve swings
 
-        filteredNodes.forEach((node, index) => {
-            if (node.prerequisites && node.prerequisites.length > 0) {
-                node.prerequisites.forEach((prereqId) => {
-                    const prereqNode = filteredNodes.find(n => n.id === prereqId);
-                    if (prereqNode) {
-                        const isHighlighted = hoveredNode === node.id || hoveredNode === prereqId ||
-                            selectedNode === node.id || selectedNode === prereqId;
+    // Function to get X, Y coordinates for a node index
+    const getNodePosition = (index: number) => {
+        const y = index * nodeHeight + 100; // Start with some padding top
+        let x = centerX;
 
-                        paths.push(
-                            <motion.div
-                                key={`${prereqId}-${node.id}`}
-                                className="absolute top-1/2 left-0 w-full h-0.5 origin-left"
-                                initial={{ scaleX: 0 }}
-                                animate={{ scaleX: 1 }}
-                                transition={{ duration: 0.5, delay: index * 0.05 }}
-                            >
-                                <div className={`h-full rounded-full transition-all duration-300 ${isHighlighted
-                                        ? 'bg-gradient-to-r from-purple-500 to-blue-500 shadow-[0_0_10px_rgba(147,51,234,0.5)]'
-                                        : 'bg-slate-700/50'
-                                    }`} />
-                            </motion.div>
-                        );
-                    }
-                });
-            }
-        });
+        if (!isMobile) {
+            // Create S-curve: Alternate Left (-1) and Right (+1)
+            // We use Math.sin or simple alternation. Let's use simple zigzag for clarity.
+            // Even index: Right, Odd index: Left (or vice versa)
+            const direction = index % 2 === 0 ? 1 : -1;
+            x = centerX + (direction * curveWidth);
+        }
 
-        return paths;
+        return { x, y };
     };
 
+    // Generate the SVG path data string
+    const pathData = useMemo(() => {
+        if (sortedNodes.length < 2) return '';
+
+        return sortedNodes.map((_, i) => {
+            if (i === sortedNodes.length - 1) return ''; // No path from last node
+
+            const current = getNodePosition(i);
+            const next = getNodePosition(i + 1);
+
+            // Bezier curve logic
+            const cp1y = current.y + (nodeHeight / 2);
+            const cp2y = next.y - (nodeHeight / 2);
+
+            return `M ${current.x} ${current.y} C ${current.x} ${cp1y}, ${next.x} ${cp2y}, ${next.x} ${next.y}`;
+        }).join(' ');
+    }, [sortedNodes, isMobile]);
+
+
     return (
-        <div className="min-h-screen py-20">
-            {/* Hero Header */}
-            <section className="section-container">
+        <div className="min-h-screen py-20 overflow-hidden">
+            {/* Background Ambience */}
+            <div className="fixed inset-0 pointer-events-none">
+                <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[100px] animate-pulse-glow" />
+                <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px] animate-pulse-glow" />
+            </div>
+
+            <section className="section-container relative z-10">
+
+                {/* Header */}
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
+                    transition={{ duration: 0.8 }}
                     className="text-center mb-16"
                 >
-                    <div className="inline-flex items-center gap-2 glass-card px-4 py-2 mb-6">
-                        <BookOpen className="w-4 h-4 text-purple-400" />
-                        <span className="text-sm font-semibold text-slate-300">Learning Path</span>
+                    <div className="inline-flex items-center gap-2 glass-card px-4 py-2 mb-6 border-purple-500/30">
+                        <Shield className="w-4 h-4 text-purple-400" />
+                        <span className="text-sm font-bold text-slate-300 tracking-wide uppercase">Interactive Journey</span>
                     </div>
-                    <h1 className="text-5xl sm:text-6xl font-black mb-6">
-                        <span className="text-gradient">Visual</span> Roadmap
+                    <h1 className="text-5xl md:text-7xl font-black mb-6 tracking-tight">
+                        <span className="text-white">Cyber</span>
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">Roadmap</span>
                     </h1>
-                    <p className="text-xl text-slate-400 max-w-3xl mx-auto leading-relaxed">
-                        Navigate your cybersecurity learning journey with our{' '}
-                        <span className="text-purple-400 font-semibold">interactive roadmap</span>
+                    <p className="text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
+                        Follow the path from novice to expert. Select a domain to customize your journey.
                     </p>
                 </motion.div>
 
-                {/* Domain Filter */}
+                {/* Domain Filter Pills */}
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.1 }}
-                    className="flex flex-wrap gap-3 justify-center mb-16"
+                    className="flex flex-wrap justify-center gap-3 mb-24 max-w-4xl mx-auto"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
                 >
                     <button
                         onClick={() => setSelectedDomain('all')}
-                        className={`px-6 py-3 rounded-xl font-semibold transition-all ${selectedDomain === 'all'
-                                ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg'
-                                : 'glass-card text-slate-400 hover:text-white'
+                        className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${selectedDomain === 'all'
+                                ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)] scale-105'
+                                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700'
                             }`}
                     >
-                        All Domains
+                        All Tracks
                     </button>
+
                     {Object.keys(domainColors).map((domain) => (
                         <button
                             key={domain}
                             onClick={() => setSelectedDomain(domain as Domain)}
-                            className={`px-6 py-3 rounded-xl font-semibold capitalize transition-all ${selectedDomain === domain
-                                    ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg'
-                                    : 'glass-card text-slate-400 hover:text-white'
+                            className={`px-5 py-2.5 rounded-full text-sm font-bold capitalize transition-all duration-300 ${selectedDomain === domain
+                                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg scale-105 border-transparent'
+                                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-700'
                                 }`}
                         >
-                            {domain}
+                            {domain.replace('-', ' ')}
                         </button>
                     ))}
                 </motion.div>
-            </section>
 
-            {/* Visual Roadmap */}
-            <section className="section-container">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Left Side - Visual Path */}
-                    <div className="lg:col-span-2">
-                        <div className="relative">
-                            {Object.entries(nodesByLevel).map(([level, nodes], levelIndex) => {
-                                if (nodes.length === 0) return null;
-                                const levelInfo = levelConfig[level as SkillLevel];
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative">
+
+                    {/* Main Roadmap Area (SVG + Nodes) */}
+                    <div className="lg:col-span-2 relative min-h-[800px] flex justify-center">
+
+                        {/* SVG Container */}
+                        <svg
+                            className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-visible"
+                            viewBox={`0 0 ${containerWidth} ${sortedNodes.length * nodeHeight + 200}`}
+                            style={{ width: '100%', height: '100%' }}
+                            preserveAspectRatio="xMidYMin slice"
+                        >
+                            <defs>
+                                <linearGradient id="pathGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stopColor="#A855F7" />
+                                    <stop offset="50%" stopColor="#3B82F6" />
+                                    <stop offset="100%" stopColor="#06B6D4" />
+                                </linearGradient>
+                                <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                                    <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+                                    <feMerge>
+                                        <feMergeNode in="coloredBlur" />
+                                        <feMergeNode in="SourceGraphic" />
+                                    </feMerge>
+                                </filter>
+                            </defs>
+
+                            {/* Animated Path */}
+                            <motion.path
+                                d={pathData}
+                                fill="none"
+                                stroke="url(#pathGradient)"
+                                strokeWidth="6"
+                                strokeLinecap="round"
+                                filter="url(#glow)"
+                                initial={{ pathLength: 0 }}
+                                animate={{ pathLength: 1 }}
+                                transition={{ duration: 2.5, ease: "easeInOut" }}
+                            />
+                        </svg>
+
+                        {/* Nodes Container */}
+                        <div className="relative w-full max-w-[800px]">
+                            {sortedNodes.map((node, index) => {
+                                const pos = getNodePosition(index);
+                                const isLeft = pos.x < centerX; // Is the node on the left side of center?
+                                const isSelected = selectedNode === node.id;
+                                const levelInfo = levelConfig[node.level];
                                 const Icon = levelInfo.icon;
 
+                                // Adjustment for HTML positioning relative to the centered container
+                                // pos.x is relative to container logic width. We need to map it to %.
+                                // Or simply use absolute positioning based on the calculations.
+                                // Since SVG and Div share the same container logic, we can map pixels mostly directly if we center the container.
+
+                                // Let's use `left` calculated as percentage to be responsive inside the container div
+                                // The container is `max-w-[800px]`. 
+                                // x=400 is center.
+
                                 return (
-                                    <div key={level} className="mb-12">
-                                        {/* Level Header */}
-                                        <div className="flex items-center gap-4 mb-8">
-                                            <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${levelInfo.gradient} p-2.5 flex items-center justify-center`}>
-                                                <Icon className="w-full h-full text-white" />
+                                    <motion.div
+                                        key={node.id}
+                                        className="absolute"
+                                        style={{
+                                            top: pos.y - 40, // Offset to center vertically on the point
+                                            left: isMobile ? '50%' : `${(pos.x / containerWidth) * 100}%`,
+                                            transform: 'translateX(-50%)',
+                                            zIndex: 10
+                                        }}
+                                        initial={{ opacity: 0, scale: 0 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ delay: index * 0.2 + 0.5, type: "spring", bounce: 0.4 }}
+                                    >
+                                        {/* The Circular Node */}
+                                        <div className="relative group cursor-pointer" onClick={() => setSelectedNode(node.id)}>
+
+                                            {/* Outer Glow Ring */}
+                                            <div className={`absolute inset-0 rounded-full opacity-50 group-hover:opacity-100 transition-opacity duration-500 blur-md ${isSelected ? 'bg-white' : levelInfo.gradient.replace('from-', 'bg-')}`} />
+
+                                            {/* Main Circle */}
+                                            <div className={`relative w-20 h-20 md:w-24 md:h-24 rounded-full bg-slate-900 border-4 ${isSelected ? 'border-white scale-110' : `border-transparent group-hover:border-white/20`} shadow-2xl flex items-center justify-center transition-all duration-300 z-10 overflow-hidden`}>
+
+                                                {/* Gradient Background inside circle */}
+                                                <div className={`absolute inset-0 opacity-20 bg-gradient-to-br ${levelInfo.gradient}`} />
+
+                                                {/* Icon */}
+                                                <Icon className={`w-8 h-8 md:w-10 md:h-10 text-white drop-shadow-lg transform group-hover:scale-110 transition-transform duration-300`} />
                                             </div>
-                                            <div>
-                                                <h2 className={`text-2xl font-black capitalize ${levelInfo.color}`}>
-                                                    {level}
-                                                </h2>
-                                                <p className="text-sm text-slate-500">{nodes.length} topics</p>
+
+                                            {/* Label - Positioned relative to node based on Side */}
+                                            <div className={`absolute top-1/2 -translate-y-1/2 w-48 md:w-64 ${isMobile
+                                                    ? 'left-full ml-6 text-left'
+                                                    : isLeft
+                                                        ? 'right-full mr-8 text-right'
+                                                        : 'left-full ml-8 text-left'
+                                                } pointer-events-none`}>
+                                                <motion.div
+                                                    initial={{ opacity: 0, x: isMobile ? 20 : (isLeft ? -20 : 20) }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    transition={{ delay: index * 0.2 + 0.8 }}
+                                                >
+                                                    <h3 className={`text-lg md:text-xl font-bold mb-1 leading-tight ${isSelected ? 'text-white' : 'text-slate-200'}`}>
+                                                        {node.title}
+                                                    </h3>
+                                                    <span className={`text-xs font-bold uppercase tracking-wider py-1 px-2 rounded-lg bg-slate-800/80 backdrop-blur-sm border border-slate-700 ${levelInfo.color}`}>
+                                                        {node.level}
+                                                    </span>
+                                                </motion.div>
                                             </div>
-                                            <div className="flex-1 h-px bg-gradient-to-r from-slate-700 to-transparent ml-4" />
                                         </div>
-
-                                        {/* Nodes Grid with Connection Lines */}
-                                        <div className="relative grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            {nodes.map((node, nodeIndex) => {
-                                                const isSelected = selectedNode === node.id;
-                                                const isHovered = hoveredNode === node.id;
-                                                const hasPrerequisites = node.prerequisites && node.prerequisites.length > 0;
-
-                                                return (
-                                                    <motion.div
-                                                        key={node.id}
-                                                        initial={{ opacity: 0, x: -20 }}
-                                                        animate={{ opacity: 1, x: 0 }}
-                                                        transition={{ duration: 0.4, delay: levelIndex * 0.1 + nodeIndex * 0.05 }}
-                                                        className="relative"
-                                                    >
-                                                        {/* Connection indicator */}
-                                                        {hasPrerequisites && (
-                                                            <motion.div
-                                                                className="absolute -top-6 left-1/2 transform -translate-x-1/2"
-                                                                initial={{ opacity: 0, y: 10 }}
-                                                                animate={{ opacity: 1, y: 0 }}
-                                                                transition={{ delay: levelIndex * 0.1 + nodeIndex * 0.05 + 0.2 }}
-                                                            >
-                                                                <div className={`w-1 h-6 rounded-full ${isHovered || isSelected
-                                                                        ? 'bg-gradient-to-b from-purple-500 to-transparent'
-                                                                        : 'bg-gradient-to-b from-slate-700 to-transparent'
-                                                                    }`} />
-                                                            </motion.div>
-                                                        )}
-
-                                                        <motion.div
-                                                            whileHover={{ y: -4, scale: 1.02 }}
-                                                            onMouseEnter={() => setHoveredNode(node.id)}
-                                                            onMouseLeave={() => setHoveredNode(null)}
-                                                            onClick={() => setSelectedNode(node.id)}
-                                                            className={`glass-card p-6 cursor-pointer group transition-all duration-300 ${isSelected
-                                                                    ? 'ring-2 ring-purple-500 bg-purple-500/10'
-                                                                    : isHovered
-                                                                        ? 'ring-1 ring-purple-500/50'
-                                                                        : ''
-                                                                }`}
-                                                        >
-                                                            <div className="flex items-start justify-between gap-4 mb-3">
-                                                                <h3 className={`text-lg font-bold transition-all duration-300 ${isSelected || isHovered ? 'text-gradient' : 'text-slate-100'
-                                                                    }`}>
-                                                                    {node.title}
-                                                                </h3>
-                                                                <div className="flex items-center gap-1.5 text-xs text-slate-400 flex-shrink-0">
-                                                                    <Clock className="w-3.5 h-3.5" />
-                                                                    <span className="whitespace-nowrap">{node.timeline}</span>
-                                                                </div>
-                                                            </div>
-
-                                                            <p className="text-sm text-slate-400 mb-4 leading-relaxed line-clamp-2">
-                                                                {node.description}
-                                                            </p>
-
-                                                            <div className="flex flex-wrap gap-2 mb-3">
-                                                                {node.domain.slice(0, 2).map((d) => (
-                                                                    <span key={d} className={`badge ${domainColors[d]} text-xs capitalize`}>
-                                                                        {d}
-                                                                    </span>
-                                                                ))}
-                                                                {node.domain.length > 2 && (
-                                                                    <span className="badge badge-purple text-xs">
-                                                                        +{node.domain.length - 2}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-
-                                                            {(isSelected || isHovered) && (
-                                                                <motion.div
-                                                                    initial={{ opacity: 0, height: 0 }}
-                                                                    animate={{ opacity: 1, height: 'auto' }}
-                                                                    className="flex items-center gap-2 text-sm text-purple-400 font-medium mt-3 pt-3 border-t border-slate-700/50"
-                                                                >
-                                                                    <span>View details</span>
-                                                                    <ChevronRight className="w-4 h-4" />
-                                                                </motion.div>
-                                                            )}
-                                                        </motion.div>
-
-                                                        {/* Connection line to next node */}
-                                                        {nodeIndex < nodes.length - 1 && (
-                                                            <motion.div
-                                                                className="hidden md:block absolute top-1/2 -right-3 w-6 h-0.5"
-                                                                initial={{ scaleX: 0 }}
-                                                                animate={{ scaleX: 1 }}
-                                                                transition={{ duration: 0.3, delay: levelIndex * 0.1 + nodeIndex * 0.05 + 0.3 }}
-                                                            >
-                                                                <div className={`h-full rounded-full ${isHovered || isSelected
-                                                                        ? 'bg-gradient-to-r from-purple-500 to-transparent'
-                                                                        : 'bg-slate-700/50'
-                                                                    }`} />
-                                                            </motion.div>
-                                                        )}
-                                                    </motion.div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
+                                    </motion.div>
                                 );
                             })}
                         </div>
+
+                        {/* Spacer at bottom */}
+                        <div style={{ height: sortedNodes.length * nodeHeight + 200 }} />
                     </div>
 
-                    {/* Right Side - Detail Panel */}
-                    <div className="lg:sticky lg:top-24 h-fit">
-                        <AnimatePresence mode="wait">
-                            {selectedNodeData ? (
-                                <motion.div
-                                    key={selectedNodeData.id}
-                                    initial={{ opacity: 0, x: 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -20 }}
-                                    transition={{ duration: 0.3 }}
-                                    className="glass-card p-8 space-y-6"
-                                >
-                                    {/* Header */}
-                                    <div>
-                                        <div className="flex items-start justify-between mb-4">
-                                            <h2 className="text-2xl font-black text-slate-100">{selectedNodeData.title}</h2>
-                                            <button
-                                                onClick={() => setSelectedNode(null)}
-                                                className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
-                                            >
-                                                <X className="w-5 h-5" />
+                    {/* Right Panel - Details (Sticky) */}
+                    <div className="lg:col-span-1">
+                        <div className="sticky top-24">
+                            <AnimatePresence mode="wait">
+                                {selectedNodeData ? (
+                                    <motion.div
+                                        key={selectedNodeData.id}
+                                        initial={{ opacity: 0, x: 50 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: 50, transition: { duration: 0.2 } }}
+                                        className="glass-card p-8 border-t-4 border-t-purple-500 shadow-[0_20px_50px_rgba(0,0,0,0.5)] bg-slate-900/90 backdrop-blur-xl"
+                                    >
+                                        <div className="flex items-start justify-between mb-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`p-3 rounded-xl bg-gradient-to-br ${levelConfig[selectedNodeData.level].gradient}`}>
+                                                    {(() => {
+                                                        const Icon = levelConfig[selectedNodeData.level].icon;
+                                                        return <Icon className="w-6 h-6 text-white" />;
+                                                    })()}
+                                                </div>
+                                                <div>
+                                                    <h2 className="text-2xl font-black text-white leading-tight">{selectedNodeData.title}</h2>
+                                                    <p className="text-purple-400 font-medium text-sm">Phase: {selectedNodeData.level}</p>
+                                                </div>
+                                            </div>
+                                            <button onClick={() => setSelectedNode(null)} className="text-slate-500 hover:text-white transition-colors">
+                                                <X className="w-6 h-6" />
                                             </button>
                                         </div>
-                                        <p className="text-slate-400 leading-relaxed mb-4">{selectedNodeData.description}</p>
 
-                                        <div className="p-4 rounded-xl bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/20">
-                                            <p className="text-sm text-slate-300">{selectedNodeData.whyItMatters}</p>
-                                        </div>
-                                    </div>
+                                        <p className="text-slate-300 leading-relaxed mb-6 text-lg">
+                                            {selectedNodeData.description}
+                                        </p>
 
-                                    {/* Timeline */}
-                                    <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-800/50">
-                                        <Clock className="w-5 h-5 text-cyan-400" />
-                                        <div>
-                                            <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Timeline</div>
-                                            <div className="text-lg font-bold text-cyan-400">{selectedNodeData.timeline}</div>
-                                        </div>
-                                    </div>
+                                        <div className="space-y-6">
+                                            {/* Why it matters */}
+                                            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                                                <h4 className="flex items-center gap-2 font-bold text-white mb-2">
+                                                    <Target className="w-4 h-4 text-red-400" />
+                                                    Mission Objective
+                                                </h4>
+                                                <p className="text-sm text-slate-400">{selectedNodeData.whyItMatters}</p>
+                                            </div>
 
-                                    {/* Key Skills */}
-                                    {selectedNodeData.skills.length > 0 && (
-                                        <div>
-                                            <h3 className="font-bold mb-4 text-slate-200">Key Skills</h3>
+                                            {/* Checklist */}
+                                            <div>
+                                                <h4 className="font-bold text-slate-200 mb-3 flex items-center gap-2">
+                                                    <CheckCircle2 className="w-5 h-5 text-green-400" />
+                                                    Key Objectives
+                                                </h4>
+                                                <ul className="space-y-2">
+                                                    {selectedNodeData.checklistItems.slice(0, 4).map((item, i) => (
+                                                        <motion.li
+                                                            key={i}
+                                                            initial={{ opacity: 0, x: -10 }}
+                                                            animate={{ opacity: 1, x: 0 }}
+                                                            transition={{ delay: 0.1 * i }}
+                                                            className="flex items-start gap-3 text-sm text-slate-400"
+                                                        >
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-2 shrink-0" />
+                                                            {item}
+                                                        </motion.li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+
+                                            {/* Skills */}
                                             <div className="flex flex-wrap gap-2">
-                                                {selectedNodeData.skills.map((skill) => (
-                                                    <span key={skill} className="badge badge-blue text-xs">
+                                                {selectedNodeData.skills.map(skill => (
+                                                    <span key={skill} className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold">
                                                         {skill}
                                                     </span>
                                                 ))}
                                             </div>
-                                        </div>
-                                    )}
 
-                                    {/* Learning Checklist */}
-                                    {selectedNodeData.checklistItems.length > 0 && (
-                                        <div>
-                                            <h3 className="font-bold mb-4 flex items-center gap-2 text-slate-200">
-                                                <CheckCircle2 className="w-5 h-5 text-green-400" />
-                                                Learning Checklist
-                                            </h3>
-                                            <ul className="space-y-3">
-                                                {selectedNodeData.checklistItems.map((item, idx) => (
-                                                    <li key={idx} className="flex items-start gap-3 text-sm text-slate-400">
-                                                        <div className="w-5 h-5 rounded-full border-2 border-purple-500/50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                                            <div className="w-2 h-2 rounded-full bg-purple-500" />
-                                                        </div>
-                                                        {item}
-                                                    </li>
-                                                ))}
-                                            </ul>
+                                            <button className="w-full btn-cyber mt-4 flex items-center justify-center gap-2 group">
+                                                Start Module <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                            </button>
                                         </div>
-                                    )}
-
-                                    {/* Resources */}
-                                    {selectedNodeData.resources.length > 0 && (
-                                        <div>
-                                            <h3 className="font-bold mb-4 text-slate-200">Resources</h3>
-                                            <div className="space-y-3">
-                                                {selectedNodeData.resources.map((resource) => (
-                                                    <a
-                                                        key={resource.id}
-                                                        href={resource.url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="block p-4 rounded-xl bg-slate-800/50 hover:bg-slate-800 transition-all duration-300 group border border-transparent hover:border-purple-500/30"
-                                                    >
-                                                        <div className="flex items-start justify-between gap-2 mb-2">
-                                                            <h4 className="font-semibold text-slate-200 group-hover:text-gradient transition-all">
-                                                                {resource.title}
-                                                            </h4>
-                                                            <ExternalLink className="w-4 h-4 text-slate-500 group-hover:text-purple-400 flex-shrink-0 transition-colors" />
-                                                        </div>
-                                                        <div className="flex flex-wrap gap-2 text-xs">
-                                                            <span className="badge badge-purple">{resource.type}</span>
-                                                            <span className="badge badge-cyan">{resource.provider}</span>
-                                                            {resource.cost && (
-                                                                <span className="badge badge-green capitalize">{resource.cost}</span>
-                                                            )}
-                                                            {resource.duration && (
-                                                                <span className="badge badge-orange">{resource.duration}</span>
-                                                            )}
-                                                        </div>
-                                                    </a>
-                                                ))}
-                                            </div>
+                                    </motion.div>
+                                ) : (
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        className="glass-card p-12 text-center border border-slate-800"
+                                    >
+                                        <div className="w-20 h-20 mx-auto bg-slate-800/50 rounded-full flex items-center justify-center mb-6 animate-pulse">
+                                            <Target className="w-10 h-10 text-slate-600" />
                                         </div>
-                                    )}
-                                </motion.div>
-                            ) : (
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    className="glass-card p-12 text-center"
-                                >
-                                    <BookOpen className="w-16 h-16 mx-auto mb-4 text-slate-700" />
-                                    <h3 className="text-lg font-semibold mb-2 text-slate-400">Select a Topic</h3>
-                                    <p className="text-sm text-slate-500">
-                                        Click on any topic card to view detailed information
-                                    </p>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                                        <h3 className="text-2xl font-bold text-white mb-2">Select a Node</h3>
+                                        <p className="text-slate-400">
+                                            Click on any circular node in the roadmap to view detailed module information, objectives, and resources.
+                                        </p>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
                     </div>
                 </div>
             </section>

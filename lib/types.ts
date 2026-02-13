@@ -1,7 +1,7 @@
 // Core types for CyberSecurity Universe
 
 export type SkillLevel = 'beginner' | 'intermediate' | 'advanced' | 'professional';
-export type Domain = 'offense' | 'defense' | 'cloud' | 'devsecops' | 'grc' | 'ot' | 'leadership';
+export type Domain = 'entry' | 'defense' | 'offense' | 'appsec' | 'cloud' | 'iam' | 'grc' | 'ot' | 'specialized' | 'architect' | 'leadership' | 'executive';
 
 export interface Resource {
     id: string;

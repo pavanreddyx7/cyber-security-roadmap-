@@ -481,7 +481,7 @@ export const jobRolesData: JobRole[] = [
     {
         id: 'devsecops-engineer',
         title: 'DevSecOps Engineer',
-        family: 'appsec',
+        family: 'devsecops',
         description: 'Integrate security into development and operations workflows',
         seniorityLevels: {
             entry: 'Junior DevSecOps Engineer',

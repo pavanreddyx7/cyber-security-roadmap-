@@ -10,7 +10,13 @@ import {
 } from 'lucide-react';
 import type { Domain } from '@/lib/types';
 
-const familyConfig: Record<Domain | 'leadership', { name: string; icon: any; color: string; gradient: string }> = {
+const familyConfig: Record<Domain, { name: string; icon: any; color: string; gradient: string }> = {
+    entry: {
+        name: 'Entry Level',
+        icon: Sparkles,
+        color: 'text-green-400',
+        gradient: 'from-green-500 to-emerald-500'
+    },
     defense: {
         name: 'Defensive Security',
         icon: Shield,
@@ -23,17 +29,23 @@ const familyConfig: Record<Domain | 'leadership', { name: string; icon: any; col
         color: 'text-red-400',
         gradient: 'from-red-500 to-pink-500'
     },
+    appsec: {
+        name: 'Application Security',
+        icon: Code,
+        color: 'text-purple-400',
+        gradient: 'from-purple-500 to-indigo-500'
+    },
     cloud: {
         name: 'Cloud Security',
         icon: Cloud,
         color: 'text-cyan-400',
         gradient: 'from-cyan-500 to-blue-500'
     },
-    devsecops: {
-        name: 'DevSecOps',
-        icon: Code,
-        color: 'text-green-400',
-        gradient: 'from-green-500 to-emerald-500'
+    iam: {
+        name: 'Identity & Access',
+        icon: Lock,
+        color: 'text-orange-400',
+        gradient: 'from-orange-500 to-amber-500'
     },
     grc: {
         name: 'GRC',
@@ -41,17 +53,41 @@ const familyConfig: Record<Domain | 'leadership', { name: string; icon: any; col
         color: 'text-purple-400',
         gradient: 'from-purple-500 to-pink-500'
     },
+    ot: {
+        name: 'OT / ICS Security',
+        icon: Building2,
+        color: 'text-yellow-400',
+        gradient: 'from-yellow-500 to-orange-500'
+    },
+    specialized: {
+        name: 'Specialized Domains',
+        icon: Star,
+        color: 'text-pink-400',
+        gradient: 'from-pink-500 to-rose-500'
+    },
+    architect: {
+        name: 'Architecture',
+        icon: Building2,
+        color: 'text-indigo-400',
+        gradient: 'from-indigo-500 to-violet-500'
+    },
     leadership: {
         name: 'Leadership',
         icon: Users,
         color: 'text-orange-400',
         gradient: 'from-orange-500 to-yellow-500'
     },
+    executive: {
+        name: 'Executive',
+        icon: Award,
+        color: 'text-rose-400',
+        gradient: 'from-rose-500 to-red-600'
+    }
 };
 
 export default function JobsPage() {
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedFamily, setSelectedFamily] = useState<Domain | 'all' | 'leadership'>('all');
+    const [selectedFamily, setSelectedFamily] = useState<Domain | 'all'>('all');
     const [selectedRole, setSelectedRole] = useState<string | null>(null);
 
     const filteredRoles = jobRolesData.filter((role) => {
@@ -115,8 +151,8 @@ export default function JobsPage() {
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => setSelectedFamily(isActive ? 'all' : stat.family)}
                                 className={`glass-card p-4 transition-all duration-300 ${isActive
-                                        ? 'ring-2 ring-purple-500 bg-purple-500/10'
-                                        : 'hover:bg-slate-800/50'
+                                    ? 'ring-2 ring-purple-500 bg-purple-500/10'
+                                    : 'hover:bg-slate-800/50'
                                     }`}
                             >
                                 <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${stat.gradient} p-2 mx-auto mb-3`}>
